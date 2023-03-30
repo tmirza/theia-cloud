@@ -56,3 +56,10 @@ Build and push the operator with:
 docker build -t theiacloud/theia-cloud-operator:latest -f dockerfiles/operator/Dockerfile .
 docker push theiacloud/theia-cloud-operator:latest
 ```
+
+Build and pish the git-init container:
+
+```bash
+docker build -t theiacloud/theia-cloud-git-init:latest -f dockerfiles/git-init/Dockerfile .
+docker push theiacloud/theia-cloud-git-init:latest
+```
