@@ -24,6 +24,75 @@ import type { RequestArgs } from './base';
 import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError } from './base';
 
 /**
+ * An object to hold all the ways environment variables can be passed. Not to be used by itself.
+ * @export
+ * @interface EnvironmentVars
+ */
+export interface EnvironmentVars {
+    /**
+     * Map of environment variables to be passed to Deployment.  Ignored if Theia applications are started eagerly.  Empty by default.
+     * @type {{ [key: string]: string; }}
+     * @memberof EnvironmentVars
+     */
+    'fromMap'?: { [key: string]: string; };
+    /**
+     * List of ConfigMaps (by name) containing environment variables to be passed to Deployment as envFrom.configMapRef.  Ignored if Theia applications are started eagerly.  Empty by default.
+     * @type {Array<string>}
+     * @memberof EnvironmentVars
+     */
+    'fromConfigMaps'?: Array<string>;
+    /**
+     * List of Secrets (by name) containing environment variables to be passed to Deployment as envFrom.secretRef.  Ignored if Theia applications are started eagerly.  Empty by default.
+     * @type {Array<string>}
+     * @memberof EnvironmentVars
+     */
+    'fromSecrets'?: Array<string>;
+}
+/**
+ * Holds information used to initialize a Workspace with a clone of a Git repository.
+ * @export
+ * @interface GitInit
+ */
+export interface GitInit {
+    /**
+     * The Git repository URL.
+     * @type {string}
+     * @memberof GitInit
+     */
+    'repository': string;
+    /**
+     * The branch, commit-id, or tag name to checkout.
+     * @type {string}
+     * @memberof GitInit
+     */
+    'checkout': string;
+    /**
+     * Key for the required auth information, if the repository is not public.
+     * @type {string}
+     * @memberof GitInit
+     */
+    'authInformation'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface InitOperation
+ */
+export interface InitOperation {
+    /**
+     * 
+     * @type {string}
+     * @memberof InitOperation
+     */
+    'id'?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof InitOperation
+     */
+    'arguments'?: Array<string>;
+}
+/**
  * A request to launch a new session.
  * @export
  * @interface LaunchRequest
@@ -77,6 +146,12 @@ export interface LaunchRequest {
      * @memberof LaunchRequest
      */
     'env'?: LaunchRequestEnv;
+    /**
+     * 
+     * @type {LaunchRequestGitInit}
+     * @memberof LaunchRequest
+     */
+    'gitInit'?: LaunchRequestGitInit;
 }
 /**
  * 
@@ -102,6 +177,31 @@ export interface LaunchRequestEnv {
      * @memberof LaunchRequestEnv
      */
     'fromSecrets'?: Array<string>;
+}
+/**
+ * 
+ * @export
+ * @interface LaunchRequestGitInit
+ */
+export interface LaunchRequestGitInit {
+    /**
+     * The Git repository URL.
+     * @type {string}
+     * @memberof LaunchRequestGitInit
+     */
+    'repository': string;
+    /**
+     * The branch, commit-id, or tag name to checkout.
+     * @type {string}
+     * @memberof LaunchRequestGitInit
+     */
+    'checkout': string;
+    /**
+     * Key for the required auth information, if the repository is not public.
+     * @type {string}
+     * @memberof LaunchRequestGitInit
+     */
+    'authInformation'?: string;
 }
 /**
  * Request to ping the availability of the service.
@@ -276,6 +376,12 @@ export interface SessionSpec {
      * @memberof SessionSpec
      */
     'envVarsFromSecrets'?: Array<string>;
+    /**
+     * 
+     * @type {Array<InitOperation>}
+     * @memberof SessionSpec
+     */
+    'initOperations'?: Array<InitOperation>;
 }
 /**
  * A request to start a session
@@ -313,6 +419,18 @@ export interface SessionStartRequest {
      * @memberof SessionStartRequest
      */
     'timeout'?: number;
+    /**
+     * 
+     * @type {LaunchRequestEnv}
+     * @memberof SessionStartRequest
+     */
+    'env'?: LaunchRequestEnv;
+    /**
+     * 
+     * @type {LaunchRequestGitInit}
+     * @memberof SessionStartRequest
+     */
+    'gitInit'?: LaunchRequestGitInit;
 }
 /**
  * A request to stop a session
@@ -723,6 +841,7 @@ export const SessionResourceApiAxiosParamCreator = function (configuration?: Con
          * @summary Report session activity
          * @param {SessionActivityRequest} [sessionActivityRequest] 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         serviceSessionPatch: async (sessionActivityRequest?: SessionActivityRequest, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -874,6 +993,7 @@ export const SessionResourceApiFp = function(configuration?: Configuration) {
          * @summary Report session activity
          * @param {SessionActivityRequest} [sessionActivityRequest] 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async serviceSessionPatch(sessionActivityRequest?: SessionActivityRequest, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<boolean>> {
@@ -939,6 +1059,7 @@ export const SessionResourceApiFactory = function (configuration?: Configuration
          * @summary Report session activity
          * @param {SessionActivityRequest} [sessionActivityRequest] 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         serviceSessionPatch(sessionActivityRequest?: SessionActivityRequest, options?: any): AxiosPromise<boolean> {
@@ -1005,6 +1126,7 @@ export class SessionResourceApi extends BaseAPI {
      * @summary Report session activity
      * @param {SessionActivityRequest} [sessionActivityRequest] 
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      * @memberof SessionResourceApi
      */

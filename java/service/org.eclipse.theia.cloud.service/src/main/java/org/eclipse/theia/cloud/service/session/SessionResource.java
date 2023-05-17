@@ -15,6 +15,7 @@
  ********************************************************************************/
 package org.eclipse.theia.cloud.service.session;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,7 @@ import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -71,9 +73,30 @@ public class SessionResource extends BaseResource {
     public String start(SessionStartRequest request) {
 	String correlationId = evaluateRequest(request);
 	info(correlationId, "Launching session " + request);
+
+	if (!isSameAuthenticatedUser(theiaCloudUser, request.user)) {
+	    /* someone tries to launch a session for a different user */
+	    error(correlationId,
+		    MessageFormat.format("User {0} tried to launch a sessions for user {1}. This is not allowed.",
+			    theiaCloudUser.getIdentifier(), request.user));
+	    throw new TheiaCloudWebException(Response.Status.FORBIDDEN);
+	}
+
+	if (request.gitInit != null) {
+	    if (request.isEphemeral()) {
+		/*
+		 * Git init is currently only possible with non ephemeral sessions because we
+		 * are initialising the mounted volume
+		 */
+		error(correlationId,
+			"Failed to lauch session. Initialising a git repository with an ephemeral session is not supported at the moment.");
+		throw new TheiaCloudWebException(TheiaCloudError.INVALID_GIT_INIT_CONFIGURATION);
+	    }
+	}
+
 	if (request.isEphemeral()) {
 	    return k8sUtil.launchEphemeralSession(correlationId, request.appDefinition, request.user, request.timeout,
-		    request.env);
+		    Optional.ofNullable(request.env));
 	}
 
 	Optional<Workspace> workspace = k8sUtil.getWorkspace(request.user,
@@ -89,7 +112,7 @@ public class SessionResource extends BaseResource {
 	}
 	info(correlationId, "Launch workspace session: " + request);
 	return k8sUtil.launchWorkspaceSession(correlationId, new UserWorkspace(workspace.get().getSpec()),
-		request.timeout, request.env);
+		request.timeout, Optional.ofNullable(request.env), Optional.ofNullable(request.gitInit));
     }
 
     @Operation(summary = "Stop session", description = "Stops a session.")
@@ -121,6 +144,7 @@ public class SessionResource extends BaseResource {
     @Operation(summary = "Report session activity", description = "Updates the last activity timestamp for a session to monitor activity.")
     @PATCH
     @PermitAll
+    @Deprecated
     public boolean activity(SessionActivityRequest request) {
 	// TODO activity reporting will be removed from this service
 	// There will be a dedicated service that will have direct communication with
@@ -167,4 +191,5 @@ public class SessionResource extends BaseResource {
 
 	return session.getUser().equals(user.getIdentifier());
     }
+
 }

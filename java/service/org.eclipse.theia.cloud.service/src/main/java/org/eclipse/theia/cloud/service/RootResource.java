@@ -17,6 +17,7 @@ package org.eclipse.theia.cloud.service;
 
 import static org.eclipse.theia.cloud.common.util.NamingUtil.asValidName;
 
+import java.text.MessageFormat;
 import java.util.Optional;
 
 import javax.annotation.security.PermitAll;
@@ -25,6 +26,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.core.Response;
 
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.theia.cloud.common.k8s.resource.Workspace;
@@ -41,6 +43,9 @@ public class RootResource extends BaseResource {
     public RootResource(ApplicationProperties applicationProperties) {
 	super(applicationProperties);
     }
+
+    @Inject
+    private TheiaCloudUser theiaCloudUser;
 
     @Inject
     private K8sUtil k8sUtil;
@@ -65,10 +70,30 @@ public class RootResource extends BaseResource {
 	    throw new TheiaCloudWebException(TheiaCloudError.INVALID_APP_DEFINITION_NAME);
 	}
 
+	if (!isSameAuthenticatedUser(theiaCloudUser, request.user)) {
+	    /* someone tries to launch a session for a different user */
+	    error(correlationId,
+		    MessageFormat.format("User {0} tried to launch a sessions for user {1}. This is not allowed.",
+			    theiaCloudUser.getIdentifier(), request.user));
+	    throw new TheiaCloudWebException(Response.Status.FORBIDDEN);
+	}
+
+	if (request.gitInit != null) {
+	    if (request.isEphemeral()) {
+		/*
+		 * Git init is currently only possible with non ephemeral sessions because we
+		 * are initialising the mounted volume
+		 */
+		error(correlationId,
+			"Failed to lauch session. Initialising a git repository with an ephemeral session is not supported at the moment.");
+		throw new TheiaCloudWebException(TheiaCloudError.INVALID_GIT_INIT_CONFIGURATION);
+	    }
+	}
+
 	if (request.isEphemeral()) {
 	    info(correlationId, "Launching ephemeral session " + request);
 	    return k8sUtil.launchEphemeralSession(correlationId, request.appDefinition, request.user, request.timeout,
-		    request.env);
+		    Optional.ofNullable(request.env));
 	}
 
 	if (request.isExistingWorkspace()) {
@@ -76,7 +101,7 @@ public class RootResource extends BaseResource {
 	    if (workspace.isPresent()) {
 		info(correlationId, "Launching existing workspace session " + request);
 		return k8sUtil.launchWorkspaceSession(correlationId, new UserWorkspace(workspace.get().getSpec()),
-			request.timeout, request.env);
+			request.timeout, Optional.ofNullable(request.env), Optional.ofNullable(request.gitInit));
 	    }
 	}
 
@@ -88,7 +113,7 @@ public class RootResource extends BaseResource {
 	info(correlationId, "Launch workspace session " + request);
 	try {
 	    return k8sUtil.launchWorkspaceSession(correlationId, new UserWorkspace(workspace.getSpec()),
-		    request.timeout, request.env);
+		    request.timeout, Optional.ofNullable(request.env), Optional.ofNullable(request.gitInit));
 	} catch (Exception exception) {
 	    info(correlationId, "Delete workspace due to launch error " + request);
 	    k8sUtil.deleteWorkspace(correlationId, workspace.getSpec().getName());

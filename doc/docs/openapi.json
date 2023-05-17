@@ -144,6 +144,7 @@
             "description" : "Not Allowed"
           }
         },
+        "deprecated" : true,
         "security" : [ {
           "SecurityScheme" : [ ]
         } ]
@@ -395,6 +396,67 @@
   },
   "components" : {
     "schemas" : {
+      "EnvironmentVars" : {
+        "description" : "An object to hold all the ways environment variables can be passed. Not to be used by itself.",
+        "type" : "object",
+        "properties" : {
+          "fromMap" : {
+            "description" : "Map of environment variables to be passed to Deployment.  Ignored if Theia applications are started eagerly.  Empty by default.",
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "fromConfigMaps" : {
+            "description" : "List of ConfigMaps (by name) containing environment variables to be passed to Deployment as envFrom.configMapRef.  Ignored if Theia applications are started eagerly.  Empty by default.",
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "fromSecrets" : {
+            "description" : "List of Secrets (by name) containing environment variables to be passed to Deployment as envFrom.secretRef.  Ignored if Theia applications are started eagerly.  Empty by default.",
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "GitInit" : {
+        "description" : "Holds information used to initialize a Workspace with a clone of a Git repository.",
+        "required" : [ "repository", "checkout" ],
+        "type" : "object",
+        "properties" : {
+          "repository" : {
+            "description" : "The Git repository URL.",
+            "type" : "string"
+          },
+          "checkout" : {
+            "description" : "The branch, commit-id, or tag name to checkout.",
+            "type" : "string",
+            "example" : "main, bd402d6, tags/1.0.0"
+          },
+          "authInformation" : {
+            "description" : "Key for the required auth information, if the repository is not public.",
+            "type" : "string"
+          }
+        }
+      },
+      "InitOperation" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "arguments" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "LaunchRequest" : {
         "description" : "A request to launch a new session.",
         "required" : [ "appId", "user" ],
@@ -431,36 +493,17 @@
           },
           "env" : {
             "allOf" : [ {
-              "$ref" : "#/components/schemas/LaunchRequest.Env"
+              "$ref" : "#/components/schemas/EnvironmentVars"
             }, {
               "description" : "Environment variables"
             } ]
-          }
-        }
-      },
-      "LaunchRequest.Env" : {
-        "type" : "object",
-        "properties" : {
-          "fromMap" : {
-            "description" : "Map of environment variables to be passed to Deployment.  Ignored if Theia applications are started eagerly.  Empty by default.",
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
           },
-          "fromConfigMaps" : {
-            "description" : "List of ConfigMaps (by name) containing environment variables to be passed to Deployment as envFrom.configMapRef.  Ignored if Theia applications are started eagerly.  Empty by default.",
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          },
-          "fromSecrets" : {
-            "description" : "List of Secrets (by name) containing environment variables to be passed to Deployment as envFrom.secretRef.  Ignored if Theia applications are started eagerly.  Empty by default.",
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
+          "gitInit" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/GitInit"
+            }, {
+              "description" : "Git Init information"
+            } ]
           }
         }
       },
@@ -588,6 +631,12 @@
             "items" : {
               "type" : "string"
             }
+          },
+          "initOperations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InitOperation"
+            }
           }
         }
       },
@@ -616,6 +665,20 @@
             "format" : "int32",
             "description" : "Number of minutes to wait for session launch. Default is 3 Minutes.",
             "type" : "integer"
+          },
+          "env" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/EnvironmentVars"
+            }, {
+              "description" : "Environment variables"
+            } ]
+          },
+          "gitInit" : {
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/GitInit"
+            }, {
+              "description" : "Git Init information"
+            } ]
           }
         }
       },

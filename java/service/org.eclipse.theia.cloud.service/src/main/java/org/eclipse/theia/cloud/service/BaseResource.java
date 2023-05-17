@@ -41,6 +41,14 @@ public class BaseResource {
 	return correlationId;
     }
 
+    protected boolean isSameAuthenticatedUser(TheiaCloudUser user, String requestUser) {
+	if (user.isAnonymous()) {
+	    /* if authentication is disabled we trust the user information */
+	    return true;
+	}
+	return user.getIdentifier().equals(requestUser);
+    }
+
     public void info(String correlationId, String message) {
 	logger.info(LogMessageUtil.formatLogMessage(correlationId, message));
     }

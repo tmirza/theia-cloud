@@ -18,6 +18,7 @@ package org.eclipse.theia.cloud.service.session;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.theia.cloud.service.EnvironmentVars;
+import org.eclipse.theia.cloud.service.GitInit;
 import org.eclipse.theia.cloud.service.ServiceRequest;
 
 @Schema(name = "SessionStartRequest", description = "A request to start a session")
@@ -38,6 +39,9 @@ public class SessionStartRequest extends ServiceRequest {
 
     @Schema(description = "Environment variables", required = false)
     public EnvironmentVars env = new EnvironmentVars();
+
+    @Schema(description = "Git Init information", required = false)
+    public GitInit gitInit;
 
     public SessionStartRequest() {
 	super(KIND);
@@ -72,7 +76,7 @@ public class SessionStartRequest extends ServiceRequest {
     @Override
     public String toString() {
 	return "SessionStartRequest [user=" + user + ", appDefinition=" + appDefinition + ", workspaceName="
-		+ workspaceName + ", timeout=" + timeout + ", env=" + env + "]";
+		+ workspaceName + ", timeout=" + timeout + ", env=" + env + ", gitInit=" + gitInit + "]";
     }
 
 }

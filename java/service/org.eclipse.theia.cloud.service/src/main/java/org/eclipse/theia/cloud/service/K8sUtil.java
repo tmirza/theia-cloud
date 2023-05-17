@@ -18,7 +18,9 @@ package org.eclipse.theia.cloud.service;
 
 import static org.eclipse.theia.cloud.common.util.WorkspaceUtil.getSessionName;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ import org.eclipse.theia.cloud.common.k8s.client.DefaultTheiaCloudClient;
 import org.eclipse.theia.cloud.common.k8s.client.TheiaCloudClient;
 import org.eclipse.theia.cloud.common.k8s.resource.Session;
 import org.eclipse.theia.cloud.common.k8s.resource.SessionSpec;
+import org.eclipse.theia.cloud.common.k8s.resource.SessionSpec.InitOperation;
 import org.eclipse.theia.cloud.common.k8s.resource.Workspace;
 import org.eclipse.theia.cloud.common.k8s.resource.WorkspaceSpec;
 import org.eclipse.theia.cloud.common.util.CustomResourceUtil;
@@ -71,34 +74,51 @@ public final class K8sUtil {
     }
 
     public String launchEphemeralSession(String correlationId, String appDefinition, String user, int timeout,
-	    EnvironmentVars env) {
-	SessionSpec sessionSpec = new SessionSpec(getSessionName(user, appDefinition), appDefinition, user);
-	sessionSpec = sessionSpecWithEnv(sessionSpec, env);
+	    Optional<EnvironmentVars> env) {
+	SessionSpec sessionSpec = new SessionSpec(//
+		getSessionName(user, appDefinition), //
+		appDefinition, //
+		user, //
+		env.isPresent() ? env.get().fromMap : Map.of(), //
+		env.isPresent() ? env.get().fromConfigMaps : List.of(), //
+		env.isPresent() ? env.get().fromSecrets : List.of());
 
 	return launchSession(correlationId, sessionSpec, timeout);
     }
 
     public String launchWorkspaceSession(String correlationId, UserWorkspace workspace, int timeout,
-	    EnvironmentVars env) {
-	SessionSpec sessionSpec = new SessionSpec(getSessionName(workspace.name), workspace.appDefinition,
-		workspace.user, workspace.name);
-	sessionSpec = sessionSpecWithEnv(sessionSpec, env);
+	    Optional<EnvironmentVars> env, Optional<GitInit> gitInit) {
+	SessionSpec sessionSpec = new SessionSpec(//
+		getSessionName(workspace.name), //
+		workspace.appDefinition, //
+		workspace.user, //
+		workspace.name, //
+		env.isPresent() ? env.get().fromMap : Map.of(), //
+		env.isPresent() ? env.get().fromConfigMaps : List.of(), //
+		env.isPresent() ? env.get().fromSecrets : List.of(), //
+		getInitOperations(gitInit));
 
 	return launchSession(correlationId, sessionSpec, timeout);
+    }
+
+    private List<InitOperation> getInitOperations(Optional<GitInit> gitInit) {
+	List<InitOperation> result = new ArrayList<>();
+	if (gitInit.isPresent()) {
+	    List<String> args = new ArrayList<>();
+	    args.add(gitInit.get().repository);
+	    args.add(gitInit.get().checkout);
+	    if (gitInit.get().authInformation != null && !gitInit.get().authInformation.isBlank()) {
+		args.add(gitInit.get().authInformation);
+	    }
+	    result.add(new InitOperation(GitInit.ID, args));
+	}
+	return result;
     }
 
     private String launchSession(String correlationId, SessionSpec sessionSpec, int timeout) {
 	SessionSpec spec = CLIENT.sessions().launch(correlationId, sessionSpec, timeout).getSpec();
 	TheiaCloudWebException.throwIfErroneous(spec);
 	return spec.getUrl();
-    }
-
-    private SessionSpec sessionSpecWithEnv(SessionSpec spec, EnvironmentVars env) {
-	if (env == null)
-	    return spec;
-
-	return new SessionSpec(spec.getName(), spec.getAppDefinition(), spec.getUser(), spec.getWorkspace(),
-		env.fromMap, env.fromConfigMaps, env.fromSecrets);
     }
 
     public boolean reportSessionActivity(String correlationId, String sessionName) {

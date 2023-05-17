@@ -15,9 +15,6 @@
  ********************************************************************************/
 package org.eclipse.theia.cloud.service;
 
-import java.util.List;
-import java.util.Map;
-
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Schema(name = "LaunchRequest", description = "A request to launch a new session.")
@@ -45,6 +42,9 @@ public class LaunchRequest extends ServiceRequest {
     @Schema(description = "Environment variables", required = false)
     public EnvironmentVars env = new EnvironmentVars();
 
+    @Schema(description = "Git Init information", required = false)
+    public GitInit gitInit;
+
     public LaunchRequest() {
 	super(KIND);
     }
@@ -67,8 +67,8 @@ public class LaunchRequest extends ServiceRequest {
     @Override
     public String toString() {
 	return "LaunchRequest [user=" + user + ", appDefinition=" + appDefinition + ", workspaceName=" + workspaceName
-		+ ", label=" + label + ", ephemeral=" + ephemeral + ", appId=" + appId + ", kind=" + kind + ", timeout="
-		+ timeout + ", " + env + "]";
+		+ ", label=" + label + ", ephemeral=" + ephemeral + ", timeout=" + timeout + ", env=" + env
+		+ ", gitInit=" + gitInit + "]";
     }
 
 }
